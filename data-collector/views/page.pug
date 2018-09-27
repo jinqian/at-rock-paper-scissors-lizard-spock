@@ -1,0 +1,25 @@
+html
+    head
+        title= title
+        link(rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css")
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    body
+        header.navbar.p-2
+            section.navbar-section
+                <a href="/welcome" class="navbar-brand mr-2">Start</a>
+                <a href="/data" class="btn btn-link">Data</a>
+        .container.columns.m-2
+            //TODO https://picturepan2.github.io/spectre/components.html#steps
+            //TODO https://picturepan2.github.io/spectre/utilities.html#loading
+            .panel.centered.col-xs-12.col-md-6.p-2
+                h1.text-center.m-2= title
+                h2.text-center.m-2= subtitle
+                .col-md-6.col-xs-12.centered
+                     if(capture)
+                        form(action='/'+name enctype="multipart/form-data" method="post").empty
+                            input(type="file" accept="image/*" name="upload")
+                            br
+                            input(type="submit" value=buttonTitle).btn.btn-lg.btn-block
+                     else
+                         form(action='/'+nextStep)
+                             input(type="submit" value=buttonTitle).btn.btn-lg.btn-success.btn-block
