@@ -1,4 +1,6 @@
+const functions = require('firebase-functions');
 const express = require('express')
+
 const app = express()
 const port = process.env.PORT || 4000
 
@@ -37,7 +39,7 @@ const steps = {
     "lizard": {
         capture: true,
         title: "Lizard",
-        subtitle: "Upload a picture of your hand doing the Lizard symbol: 🦎 👌",
+        subtitle: "Upload a picture of your hand doing the Lizard symbol: 🦎",
         buttonTitle: "Upload",
         nextStep: "spock",
     },
@@ -64,8 +66,9 @@ app.use('/data/', express.static(__dirname + '/data/'));
 app.use('/data/', serveIndex(__dirname + '/data/', {
     'icons': true
 }));
+
 app.get('/', function(req, res) {
-    res.redirect(302, "/welcome")
+    res.redirect("/welcome")
 })
 
 app.get('/:step', function(req, res) {
@@ -111,4 +114,5 @@ app.post('/:step', function(req, res) {
     }
 });
 
-app.listen(port, () => console.log(`Data collector app listening on port ${port}!`))
+// app.listen(port, () => console.log(`Data collector app listening on port ${port}!`))
+exports.app = functions.https.onRequest(app);
