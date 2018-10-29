@@ -4,9 +4,34 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 4000
 
-const formidable = require('formidable');
+var Busboy = require('busboy');
+const path = require('path');
+const os = require('os');
 const fs = require('fs');
 const serveIndex = require('serve-index');
+
+// init firebase
+var firebase = require("firebase");
+var config = {
+    apiKey: "AIzaSyBMZE8hXbscxJq1pwj97HirLzFadRCT2RQ",
+    authDomain: "android-things-hand-game.firebaseapp.com",
+    databaseURL: "https://android-things-hand-game.firebaseio.com",
+    projectId: "android-things-hand-game",
+    storageBucket: "android-things-hand-game.appspot.com",
+    messagingSenderId: "549252041695"
+};
+firebase.initializeApp(config);
+
+var admin = require("firebase-admin");
+var serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://android-things-hand-game.firebaseio.com"
+});
+
+// Get a reference to the storage service, which is used to create references in your storage bucket
+const bucket = admin.storage().bucket("android-things-hand-game.appspot.com");
 
 const steps = {
     "welcome": {
@@ -86,25 +111,40 @@ app.post('/:step', function(req, res) {
     const stepName = req.params.step
     const step = steps[stepName];
     if (step != null && step.capture) {
-        const form = new formidable.IncomingForm()
-        const stepFolderPath = `${__dirname}/data/${stepName}`
-        const count = fs.readdirSync(stepFolderPath).length
-        const uploadPath = `${stepFolderPath}/${count}.jpg`;
-        form.on('fileBegin', function(name, file) {
-            file.path = uploadPath
+        const busboy = new Busboy({
+            headers: req.headers
         });
-        form.on('file', function(name, file) {
-            console.log('Uploaded ' + uploadPath);
+
+        // This code will process each file uploaded.
+        busboy.on('file', (fieldname, file, filename) => {
+            if (filename) {
+                // Note: os.tmpdir() points to an in-memory file system on GCF
+                // Thus, any files in it must fit in the instance's memory.
+                console.log(`Processed file ${filename}`);
+                const filepath = path.join(os.tmpdir(), filename);
+                file.pipe(fs.createWriteStream(filepath));
+
+                const options = {
+                    destination: `/${stepName}/${Date.now()}.jpg`
+                };
+
+                bucket.upload(filepath, options, function(err, file) {
+                    console.log("Uploaded")
+                });
+            }
+        });
+
+        // Triggered once all uploaded files are processed by Busboy.
+        // We still need to wait for the disk writes (saves) to complete.
+        busboy.on('finish', () => {
             res.writeHead(200, {
                 'Content-Type': 'text/html'
             });
             res.write(`<script>setTimeout(function () { window.location.href = "/${step.nextStep}"; }, 100);</script>`);
             res.end();
         });
-        form.parse(req, function(err, fields, files) {
-            // fs.rename(files.upload.path, uploadPath, function (err) { throw err; });
-        });
 
+        busboy.end(req.rawBody);
     } else {
         res.writeHead(400, {
             'content-type': 'text/plain'

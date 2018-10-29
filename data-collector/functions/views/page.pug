@@ -16,8 +16,8 @@ html
                 h2.text-center.m-2= subtitle
                 .col-md-6.col-xs-12.centered
                      if(capture)
-                        form(action='/'+name enctype="multipart/form-data" method="post").empty
-                            input(type="file" accept="image/*" name="upload")
+                        form(action='/'+name enctype="multipart/form-data" method="POST")
+                            input(type="file" accept="image/*" name="filefield")
                             br
                             input(type="submit" value=buttonTitle).btn.btn-lg.btn-block
                      else
