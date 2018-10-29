@@ -87,10 +87,6 @@ app.set('views', './views');
 
 //SAVE CSS AND JS HERE
 app.use('/public/', express.static(__dirname + '/public/'));
-app.use('/data/', express.static(__dirname + '/data/'));
-app.use('/data/', serveIndex(__dirname + '/data/', {
-    'icons': true
-}));
 
 app.get('/', function(req, res) {
     res.redirect("/welcome")
