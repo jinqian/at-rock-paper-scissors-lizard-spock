@@ -1,4 +1,4 @@
-# Data collecttor tool
+# Data collector
 
 - Firebase hosting
 - Cloud functions for firebase
