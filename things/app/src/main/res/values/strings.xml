@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ATHandGame</string>
+    <string name="welcomPrompt">Pressing the button to play!</string>
+</resources>
