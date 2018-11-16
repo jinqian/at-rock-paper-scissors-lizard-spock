@@ -1,6 +1,7 @@
 package fr.xebia.athandgame
 
 import android.app.Activity
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
@@ -10,6 +11,8 @@ import com.google.android.things.contrib.driver.button.ButtonInputDriver
 import com.google.android.things.pio.Gpio
 import com.google.android.things.pio.PeripheralManager
 import fr.xebia.athandgame.driver.AdafruitPwm
+import fr.xebia.athandgame.game.Gesture
+import fr.xebia.athandgame.game.GestureGenerator
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
 
@@ -22,6 +25,7 @@ class MainActivity : Activity() {
     private lateinit var pwm: AdafruitPwm
 
     private var isCountingDown = false
+    private val gestureGenerator = GestureGenerator()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,21 +38,18 @@ class MainActivity : Activity() {
         pwm = AdafruitPwm(I2C_DEVICE_NAME, I2C_SERVO_ADDRESS, true)
         pwm.setPwmFreq(60)
 
-
         Log.d(TAG, "Configuring GPIO pins")
         ledGpio = peripheralManager.openGpio(BoardDefaults.gpioForLED)
         ledGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
 
         Timber.d(TAG, "Registering button driver")
-        // Initialize and register the InputDriver that will emit SPACE key events
-        // on GPIO state changes.
         buttonInputDriver = ButtonInputDriver(
             BoardDefaults.gpioForButton,
             Button.LogicState.PRESSED_WHEN_LOW,
             KeyEvent.KEYCODE_SPACE
         )
         buttonInputDriver.register()
-        countDownTimer = object : CountDownTimer(3000, 1000) {
+        countDownTimer = object : CountDownTimer(2000, 1000) {
 
             override fun onTick(millisUntilFinished: Long) {
                 isCountingDown = true
@@ -58,8 +59,13 @@ class MainActivity : Activity() {
             override fun onFinish() {
                 isCountingDown = false
                 countDownPrompt.text = "Play!"
+
+                // TODO game start sound
+                val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.test_sound)
+                mediaPlayer.start()
+
                 // TODO test servo motors should not block current thread
-                moveServo()
+                moveServo(gestureGenerator.fire())
             }
         }
     }
@@ -74,21 +80,10 @@ class MainActivity : Activity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun moveServo() {
-        pwm.setPwm(0, 0, SERVO_MIN)
-        pwm.setPwm(2, 0, SERVO_MIN)
-        pwm.setPwm(4, 0, SERVO_MIN)
-        pwm.setPwm(6, 0, SERVO_MIN)
-        pwm.setPwm(7, 0, SERVO_MIN)
-
-        Thread.sleep(1000)
-        pwm.setPwm(0, 0, SERVO_MAX)
-        pwm.setPwm(2, 0, SERVO_MAX)
-        pwm.setPwm(4, 0, SERVO_MAX)
-        pwm.setPwm(6, 0, SERVO_MAX)
-        pwm.setPwm(7, 0, SERVO_MAX)
-
-        Thread.sleep(1000)
+    private fun moveServo(gesture: Gesture) {
+        pwm.setPwm(gesture.driverPin, 0, SERVO_MIN)
+        Thread.sleep(200)
+        pwm.setPwm(gesture.driverPin, SERVO_MIN, 0)
     }
 
     private fun countDown() {
@@ -119,7 +114,6 @@ class MainActivity : Activity() {
         buttonInputDriver.close()
 
         ledGpio.close()
-
         pwm.close()
 
         super.onStop()
