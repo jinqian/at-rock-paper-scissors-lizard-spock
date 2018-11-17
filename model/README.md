@@ -1,3 +1,4 @@
-# First batch
+# Training scripts
 
-only contains 4 gestures
+- `retrain.sh`: retrain your selected architecture to obtain your custom graph
+- `convert_lite.sh`: convert to tensorflow lite format

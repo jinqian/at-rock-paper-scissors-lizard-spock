@@ -1,4 +1,0 @@
-paper
-rock
-scissors
-spock
