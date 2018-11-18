@@ -17,4 +17,10 @@
     <string name="lizard_eats_paper">Lizard eats Paper</string>
     <string name="lizard_poisons_spock">Lizard poisons Spock</string>
     <string name="tie_result">It\'s a tie!</string>
+
+    <!-- camera -->
+    <string name="initializing">Initializing…</string>
+    <string name="help_message">Press the button to take a picture</string>
+    <string name="empty_result">I don\'t understand what I see</string>
+
 </resources>

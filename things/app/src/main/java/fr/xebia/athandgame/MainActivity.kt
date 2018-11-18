@@ -20,13 +20,11 @@ class MainActivity : Activity() {
 
     private lateinit var ledGpio: Gpio
     private lateinit var buttonInputDriver: ButtonInputDriver
+    
     private lateinit var countDownTimer: CountDownTimer
-
     private lateinit var pwm: AdafruitPwm
-
     private var isCountingDown = false
     private val gestureGenerator = GestureGenerator()
-
     private var handUp = false
     private var currentGesture: Gesture? = null
 
