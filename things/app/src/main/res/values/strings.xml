@@ -22,5 +22,6 @@
     <string name="initializing">Initializing…</string>
     <string name="help_message">Press the button to take a picture</string>
     <string name="empty_result">I don\'t understand what I see</string>
+    <string name="play_game">Play</string>
 
 </resources>

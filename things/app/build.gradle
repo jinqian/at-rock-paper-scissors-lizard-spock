@@ -27,6 +27,12 @@ android {
     kotlinOptions{
         jvmTarget = '1.8'
     }
+
+    // Required to enable TF Lite to read model files directly from assets/
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "lite"
+    }
 }
 
 ext {

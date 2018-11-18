@@ -17,32 +17,101 @@ package fr.xebia.athandgame
 
 import android.app.Activity
 import android.graphics.Bitmap
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
-import android.widget.ImageView
-import android.widget.TextView
+import com.google.android.things.contrib.driver.button.Button
+import com.google.android.things.contrib.driver.button.ButtonInputDriver
+import com.google.android.things.pio.Gpio
+import com.google.android.things.pio.PeripheralManager
 import fr.xebia.athandgame.classifier.Recognition
 import fr.xebia.athandgame.classifier.TensorFlowHelper
+import fr.xebia.athandgame.driver.AdafruitPwm
+import fr.xebia.athandgame.game.Gesture
+import fr.xebia.athandgame.game.GestureGenerator
+import kotlinx.android.synthetic.main.activity_camera.*
 import org.tensorflow.lite.Interpreter
-
+import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class ImageClassifierActivity : Activity() {
 
-    //    private ButtonInputDriver mButtonDriver;
+    private lateinit var ledGpio: Gpio
+    private lateinit var buttonInputDriver: ButtonInputDriver
+    private lateinit var countDownTimer: CountDownTimer
+    private lateinit var pwm: AdafruitPwm
+    private var isCountingDown = false
+    private val gestureGenerator = GestureGenerator()
+    private var handUp = false
+    private var currentGesture: Gesture? = null
+
     private var mProcessing: Boolean = false
 
-    private var mImage: ImageView? = null
-    private var mResultText: TextView? = null
+    private lateinit var mTensorFlowLite: Interpreter
+    private lateinit var mLabels: List<String>
+    private lateinit var mCameraHandler: CameraHandler
+    private lateinit var mImagePreprocessor: ImagePreprocessor
 
-    private var mTensorFlowLite: Interpreter? = null
-    private var mLabels: List<String>? = null
-    private var mCameraHandler: CameraHandler? = null
-    private var mImagePreprocessor: ImagePreprocessor? = null
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        setContentView(R.layout.activity_camera)
+
+        updateStatus(getString(R.string.initializing))
+
+        initButton()
+        initServoMotors()
+        initCamera()
+        initClassifier()
+        initCountDown()
+
+        updateStatus(getString(R.string.help_message))
+    }
+
+    private fun initButton() {
+        Log.d(TAG, "Configuring GPIO pins")
+        val peripheralManager = PeripheralManager.getInstance()
+        ledGpio = peripheralManager.openGpio(BoardDefaults.gpioForLED)
+        ledGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
+
+        Log.d(TAG, "Registering button driver")
+        buttonInputDriver = ButtonInputDriver(
+            BoardDefaults.gpioForButton,
+            Button.LogicState.PRESSED_WHEN_LOW,
+            KeyEvent.KEYCODE_SPACE
+        )
+        buttonInputDriver.register()
+    }
+
+    override fun onStop() {
+        buttonInputDriver.unregister()
+        buttonInputDriver.close()
+
+        ledGpio.close()
+        pwm.close()
+
+        super.onStop()
+    }
+
+    private fun initServoMotors() {
+        // I2C setup
+        Log.d(TAG, "Setup I2C devices")
+        pwm = AdafruitPwm(I2C_DEVICE_NAME, I2C_SERVO_ADDRESS, true)
+        pwm.setPwmFreq(PWM_FREQUENCE)
+
+        // calibrate servos to down angel
+        pwm.setPwm(Gesture.ROCK.driverPin, 0, SERVO_DOWN)
+        pwm.setPwm(Gesture.PAPER.driverPin, 0, SERVO_DOWN)
+        pwm.setPwm(Gesture.SCISSORS.driverPin, 0, SERVO_DOWN)
+        pwm.setPwm(Gesture.SPOCK.driverPin, 0, SERVO_DOWN)
+        pwm.setPwm(Gesture.LIZARD.driverPin, 0, SERVO_DOWN)
+    }
 
     /**
      * Initialize the classifier that will be used to process images.
@@ -61,7 +130,7 @@ class ImageClassifierActivity : Activity() {
      * Clean up the resources used by the classifier.
      */
     private fun destroyClassifier() {
-        mTensorFlowLite!!.close()
+        mTensorFlowLite.close()
     }
 
     /**
@@ -76,7 +145,7 @@ class ImageClassifierActivity : Activity() {
      */
     private fun doRecognize(image: Bitmap?) {
         // Allocate space for the inference results
-        val confidencePerLabel = Array(1) { ByteArray(mLabels!!.size) }
+        val confidencePerLabel = Array(1) { FloatArray(mLabels.size) }
         // Allocate buffer for image pixels.
         val intValues = IntArray(DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y)
         val imgData = ByteBuffer.allocateDirect(
@@ -89,10 +158,10 @@ class ImageClassifierActivity : Activity() {
 
         // Run inference on the network with the image bytes in imgData as input,
         // storing results on the confidencePerLabel array.
-        mTensorFlowLite!!.run(imgData, confidencePerLabel)
+        mTensorFlowLite.run(imgData, confidencePerLabel)
 
         // Get the results with the highest confidence and map them to their labels
-        val results = TensorFlowHelper.getBestResults(confidencePerLabel, mLabels!!)
+        val results = TensorFlowHelper.getBestResults(confidencePerLabel, mLabels)
         // Report the results with the highest confidence
         onPhotoRecognitionReady(results)
     }
@@ -106,7 +175,7 @@ class ImageClassifierActivity : Activity() {
             DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
         )
         mCameraHandler = CameraHandler.getInstance()
-        mCameraHandler!!.initializeCamera(
+        mCameraHandler.initializeCamera(
             this,
             PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
@@ -119,7 +188,7 @@ class ImageClassifierActivity : Activity() {
      * Clean up resources used by the camera.
      */
     private fun closeCamera() {
-        mCameraHandler!!.shutDown()
+        mCameraHandler.shutDown()
     }
 
     /**
@@ -127,27 +196,7 @@ class ImageClassifierActivity : Activity() {
      * When done, the method [.onPhotoReady] must be called with the image.
      */
     private fun loadPhoto() {
-        mCameraHandler!!.takePicture()
-    }
-
-
-    // --------------------------------------------------------------------------------------
-    // NOTE: The normal codelab flow won't require you to change anything below this line,
-    // although you are encouraged to read and understand it.
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        setContentView(R.layout.activity_camera)
-        mImage = findViewById(R.id.imageView)
-        mResultText = findViewById(R.id.resultText)
-
-        updateStatus(getString(R.string.initializing))
-        initCamera()
-        initClassifier()
-        initCountDown()
-        updateStatus(getString(R.string.help_message))
+        mCameraHandler.takePicture()
     }
 
     /**
@@ -160,33 +209,95 @@ class ImageClassifierActivity : Activity() {
      * sending key events using a USB keyboard or `adb shell input keyevent 66`.
      */
     private fun initCountDown() {
-        //        try {
-        //            mButtonDriver = RainbowHat.createButtonCInputDriver(KeyEvent.KEYCODE_ENTER);
-        //            mButtonDriver.register();
-        //        } catch (IOException e) {
-        //            Log.w(TAG, "Cannot find button. Ignoring push button. Use a keyboard instead.", e);
-        //        }
+        countDownTimer = object : CountDownTimer(3000, 1000) {
+
+            override fun onTick(millisUntilFinished: Long) {
+                isCountingDown = true
+                resultText.text = (millisUntilFinished / 1000 + 1).toString()
+            }
+
+            override fun onFinish() {
+                isCountingDown = false
+                resultText.text = "Play!"
+
+                // TODO game start sound
+                val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.test_sound)
+                mediaPlayer.start()
+
+                // TODO test servo motors should not block current thread
+                if (mProcessing) {
+                    updateStatus("Still processing, please wait")
+                } else {
+                    fireGesture(gestureGenerator.fire())
+                    updateStatus("Running photo recognition on your gesture")
+                    mProcessing = true
+                    loadPhoto()
+                }
+            }
+        }
     }
 
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (mProcessing) {
-                updateStatus("Still processing, please wait")
-                return true
+    // hardware
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_SPACE) {
+            if (handUp) {
+                reset()
+            } else {
+                countDown()
             }
-            updateStatus("Running photo recognition")
-            mProcessing = true
-            loadPhoto()
+            setLedValue(true)
+            return true
+        }
+
+        return super.onKeyDown(keyCode, event)
+    }
+
+    private fun reset() {
+        handUp = false
+        currentGesture?.let {
+            pwm.setPwm(it.driverPin, 0, SERVO_DOWN)
+        }
+        finish()
+    }
+
+    private fun fireGesture(gesture: Gesture) {
+        Timber.d("Fire ${gesture.name}")
+        handUp = true
+        currentGesture = gesture
+        pwm.setPwm(gesture.driverPin, 0, SERVO_HAND)
+    }
+
+    private fun countDown() {
+        if (!isCountingDown) {
+            countDownTimer.start()
+        }
+    }
+
+    // hardware
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_SPACE) {
+            // Turn off the LED
+            setLedValue(false)
             return true
         }
         return super.onKeyUp(keyCode, event)
     }
 
     /**
+     * Update the value of the LED output.
+     */
+    private fun setLedValue(value: Boolean) {
+        Log.d(TAG, "Setting LED value to $value")
+        ledGpio.value = value
+    }
+
+    /**
      * Image capture process complete
      */
     private fun onPhotoReady(bitmap: Bitmap?) {
-        mImage!!.setImageBitmap(bitmap)
+        imageView.setImageBitmap(bitmap)
         doRecognize(bitmap)
     }
 
@@ -196,6 +307,10 @@ class ImageClassifierActivity : Activity() {
     private fun onPhotoRecognitionReady(results: Collection<Recognition>) {
         updateStatus(formatResults(results))
         mProcessing = false
+    }
+
+    private fun updateStatus(text: String) {
+        resultText.text = text
     }
 
     /**
@@ -221,14 +336,6 @@ class ImageClassifierActivity : Activity() {
 
             return sb.toString()
         }
-    }
-
-    /**
-     * Report updates to the display and log output
-     */
-    private fun updateStatus(status: String) {
-        Log.d(TAG, status)
-        mResultText!!.text = status
     }
 
     override fun onDestroy() {
@@ -268,6 +375,15 @@ class ImageClassifierActivity : Activity() {
          * TF model asset files
          */
         private const val LABELS_FILE = "handgame_labels.txt"
-        private const val MODEL_FILE = "handgame_graph.tflite"
+        private const val MODEL_FILE = "handgame_graph.lite"
+
+        // The PWM/Servo driver is hooked on I2C2
+        private const val I2C_DEVICE_NAME: String = "I2C2"
+
+        private const val I2C_SERVO_ADDRESS: Int = 0x40
+
+        private const val PWM_FREQUENCE = 60
+        private const val SERVO_DOWN = 100
+        private const val SERVO_HAND = 350
     }
 }

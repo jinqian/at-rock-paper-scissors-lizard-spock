@@ -1,25 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:tools="http://schemas.android.com/tools"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical">
 
     <TextView
             android:id="@+id/welcomePrompt"
             android:layout_width="wrap_content"
+            android:layout_gravity="center_horizontal"
             android:layout_height="wrap_content"
-            android:layout_above="@+id/countDownPrompt"
-            android:layout_centerHorizontal="true"
             android:text="@string/welcomPrompt"
             android:textSize="36sp"/>
 
-    <TextView
-            android:id="@+id/countDownPrompt"
+    <Button
+            android:id="@+id/startButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:textSize="48sp"
-            tools:text="3!"/>
+            android:layout_gravity="center_horizontal"
+            android:text="@string/play_game"/>
 
-</RelativeLayout>
+</LinearLayout>
