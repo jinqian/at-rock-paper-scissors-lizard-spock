@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
  Copyright 2017 The Android Things Samples Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +31,7 @@
         android:id="@+id/resultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
         android:background="@color/control_background"
         android:padding="20sp"
         android:text="@string/help_message"

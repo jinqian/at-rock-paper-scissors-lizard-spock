@@ -32,9 +32,9 @@ import fr.xebia.athandgame.classifier.TensorFlowHelper
 import fr.xebia.athandgame.driver.AdafruitPwm
 import fr.xebia.athandgame.game.Gesture
 import fr.xebia.athandgame.game.GestureGenerator
+import fr.xebia.athandgame.game.Rules
 import kotlinx.android.synthetic.main.activity_camera.*
 import org.tensorflow.lite.Interpreter
-import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -153,7 +153,7 @@ class ImageClassifierActivity : Activity() {
      * format expected by the classification process, which can be time
      * and power consuming.
      */
-    private fun doRecognize(image: Bitmap?) {
+    private fun doRecognize(image: Bitmap) {
         // Allocate space for the inference results
         val confidencePerLabel = Array(1) { FloatArray(mLabels.size) }
         // Allocate buffer for image pixels.
@@ -171,9 +171,24 @@ class ImageClassifierActivity : Activity() {
         mTensorFlowLite.run(imgData, confidencePerLabel)
 
         // Get the results with the highest confidence and map them to their labels
-        val results = TensorFlowHelper.getBestResults(confidencePerLabel, mLabels)
+//        val results = TensorFlowHelper.getBestResults(confidencePerLabel, mLabels)
+
+        val topResult = TensorFlowHelper.getTopLabel(confidencePerLabel, mLabels)
         // Report the results with the highest confidence
-        onPhotoRecognitionReady(results)
+        currentGesture?.let { selfGesture ->
+            val opponentGesture = Gesture.valueOf(topResult.first.toUpperCase())
+            val gameResult = Rules.getGameResult(selfGesture, opponentGesture)
+            resultText.text = getString(gameResult.reason)
+            gameResult.doIWin?.let {
+                if (it) {
+                    // TODO play wining sound + display smile face
+                } else {
+                    // TODO play lose sound + display sad face
+                }
+            }
+        }
+
+        mProcessing = false
     }
 
     /**
@@ -189,8 +204,9 @@ class ImageClassifierActivity : Activity() {
                 this,
                 PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
-            val bitmap = mImagePreprocessor!!.preprocessImage(imageReader.acquireNextImage())
-            onPhotoReady(bitmap)
+            val bitmap = mImagePreprocessor.preprocessImage(imageReader.acquireNextImage())
+            imageView.setImageBitmap(bitmap)
+            doRecognize(bitmap)
         }
     }
 
@@ -272,7 +288,7 @@ class ImageClassifierActivity : Activity() {
     }
 
     private fun fireGesture(gesture: Gesture) {
-        Timber.d("Fire ${gesture.name}")
+        Log.d(TAG, "Fire ${gesture.name}")
         handUp = true
         currentGesture = gesture
         pwm.setPwm(gesture.driverPin, 0, SERVO_HAND)
@@ -301,22 +317,6 @@ class ImageClassifierActivity : Activity() {
     private fun setLedValue(value: Boolean) {
         Log.d(TAG, "Setting LED value to $value")
         ledGpio.value = value
-    }
-
-    /**
-     * Image capture process complete
-     */
-    private fun onPhotoReady(bitmap: Bitmap?) {
-        imageView.setImageBitmap(bitmap)
-        doRecognize(bitmap)
-    }
-
-    /**
-     * Image classification process complete
-     */
-    private fun onPhotoRecognitionReady(results: Collection<Recognition>) {
-        updateStatus(formatResults(results))
-        mProcessing = false
     }
 
     private fun updateStatus(text: String) {
