@@ -1,8 +1,8 @@
 package fr.xebia.athandgame.game
 
-class GestureGenerator {
+class GestureGenerator(private val totalGesture: Int) {
 
     fun fire(): Gesture {
-        return Gesture.values()[(0 until Gesture.values().size).random()]
+        return Gesture.values()[(0 until totalGesture).random()]
     }
 }

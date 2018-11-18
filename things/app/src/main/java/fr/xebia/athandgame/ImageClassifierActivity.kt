@@ -46,7 +46,7 @@ class ImageClassifierActivity : Activity() {
     private lateinit var countDownTimer: CountDownTimer
     private lateinit var pwm: AdafruitPwm
     private var isCountingDown = false
-    private val gestureGenerator = GestureGenerator()
+    private lateinit var gestureGenerator: GestureGenerator
     private var handUp = false
     private var currentGesture: Gesture? = null
 
@@ -65,10 +65,10 @@ class ImageClassifierActivity : Activity() {
 
         updateStatus(getString(R.string.initializing))
 
+        initGameSet()
+        initCamera()
         initButton()
         initServoMotors()
-        initCamera()
-        initClassifier()
         initCountDown()
 
         updateStatus(getString(R.string.help_message))
@@ -82,9 +82,9 @@ class ImageClassifierActivity : Activity() {
 
         Log.d(TAG, "Registering button driver")
         buttonInputDriver = ButtonInputDriver(
-            BoardDefaults.gpioForButton,
-            Button.LogicState.PRESSED_WHEN_LOW,
-            KeyEvent.KEYCODE_SPACE
+                BoardDefaults.gpioForButton,
+                Button.LogicState.PRESSED_WHEN_LOW,
+                KeyEvent.KEYCODE_SPACE
         )
         buttonInputDriver.register()
     }
@@ -116,10 +116,20 @@ class ImageClassifierActivity : Activity() {
     /**
      * Initialize the classifier that will be used to process images.
      */
-    private fun initClassifier() {
+    private fun initGameSet() {
         try {
-            mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, MODEL_FILE))
-            mLabels = TensorFlowHelper.readLabels(this, LABELS_FILE)
+            intent?.extras?.let {
+                if (it.getBoolean(EXTRA_FULL_MODE)) {
+                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, FULL_MODEL_FILE))
+                    mLabels = TensorFlowHelper.readLabels(this, FULL_LABELS_FILE)
+                    gestureGenerator = GestureGenerator(FULL_GAME_MODE)
+                } else {
+                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, PARTIAL_MODEL_FILE))
+                    mLabels = TensorFlowHelper.readLabels(this, PARTIAL_LABELS_FILE)
+                    gestureGenerator = GestureGenerator(PARTIAL_GAME_MODE)
+                }
+            }
+
         } catch (e: IOException) {
             Log.w(TAG, "Unable to initialize TensorFlow Lite.", e)
         }
@@ -149,7 +159,7 @@ class ImageClassifierActivity : Activity() {
         // Allocate buffer for image pixels.
         val intValues = IntArray(DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y)
         val imgData = ByteBuffer.allocateDirect(
-            4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
+                4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
         )
         imgData.order(ByteOrder.nativeOrder())
 
@@ -171,13 +181,13 @@ class ImageClassifierActivity : Activity() {
      */
     private fun initCamera() {
         mImagePreprocessor = ImagePreprocessor(
-            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
-            DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
+                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
+                DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
         )
         mCameraHandler = CameraHandler.getInstance()
         mCameraHandler.initializeCamera(
-            this,
-            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
+                this,
+                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
             val bitmap = mImagePreprocessor!!.preprocessImage(imageReader.acquireNextImage())
             onPhotoReady(bitmap)
@@ -356,6 +366,8 @@ class ImageClassifierActivity : Activity() {
     companion object {
         private const val TAG = "ImageClassifierActivity"
 
+        const val EXTRA_FULL_MODE = "EXTRA_FULL_MODE"
+
         /**
          * Camera image capture size
          */
@@ -374,8 +386,14 @@ class ImageClassifierActivity : Activity() {
         /**
          * TF model asset files
          */
-        private const val LABELS_FILE = "handgame_labels.txt"
-        private const val MODEL_FILE = "handgame_graph.lite"
+        private const val FULL_GAME_MODE = 5
+        private const val PARTIAL_GAME_MODE = 3
+
+        private const val FULL_LABELS_FILE = "handgame_5_labels.txt"
+        private const val FULL_MODEL_FILE = "handgame_5_graph.lite"
+
+        private const val PARTIAL_LABELS_FILE = "handgame_3_labels.txt"
+        private const val PARTIAL_MODEL_FILE = "handgame_3_graph.lite"
 
         // The PWM/Servo driver is hooked on I2C2
         private const val I2C_DEVICE_NAME: String = "I2C2"

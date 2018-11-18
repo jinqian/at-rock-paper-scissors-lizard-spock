@@ -10,12 +10,18 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        startButton.setOnClickListener {
-            startActivity(Intent(this, ImageClassifierActivity::class.java))
-        }
-    }
+        actionBar?.hide()
 
-    companion object {
-        private val TAG = MainActivity::class.java.simpleName
+        threeMode.setOnClickListener {
+            val intent = Intent(this, ImageClassifierActivity::class.java)
+            intent.putExtra(ImageClassifierActivity.EXTRA_FULL_MODE, false)
+            startActivity(intent)
+        }
+
+        fiveMode.setOnClickListener {
+            val intent = Intent(this, ImageClassifierActivity::class.java)
+            intent.putExtra(ImageClassifierActivity.EXTRA_FULL_MODE, true)
+            startActivity(intent)
+        }
     }
 }

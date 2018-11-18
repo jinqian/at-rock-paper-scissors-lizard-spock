@@ -45,12 +45,12 @@ public class NonQuantizedImageClassifier {
     /**
      * Name of the model file stored in Assets.
      */
-    private static final String MODEL_PATH = "handgame_graph.lite";
+    private static final String MODEL_PATH = "handgame_5_graph.lite";
 
     /**
      * Name of the label file stored in Assets.
      */
-    private static final String LABEL_PATH = "handgame_labels.txt";
+    private static final String LABEL_PATH = "handgame_5_labels.txt";
 
     /**
      * Number of results to show in the UI.

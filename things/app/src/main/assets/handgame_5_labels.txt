@@ -1,0 +1,5 @@
+lizard
+paper
+rock
+scissors
+spock
