@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
  Copyright 2017 The Android Things Samples Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,5 +14,5 @@
  limitations under the License.
 -->
 <resources>
-    <color name="control_background">#774285f4</color>
+    <color name="control_background">#7790caf9</color>
 </resources>

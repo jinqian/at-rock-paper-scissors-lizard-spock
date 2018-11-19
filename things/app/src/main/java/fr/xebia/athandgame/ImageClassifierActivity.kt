@@ -20,6 +20,7 @@ import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -27,7 +28,6 @@ import com.google.android.things.contrib.driver.button.Button
 import com.google.android.things.contrib.driver.button.ButtonInputDriver
 import com.google.android.things.pio.Gpio
 import com.google.android.things.pio.PeripheralManager
-import fr.xebia.athandgame.classifier.Recognition
 import fr.xebia.athandgame.classifier.TensorFlowHelper
 import fr.xebia.athandgame.driver.AdafruitPwm
 import fr.xebia.athandgame.game.Gesture
@@ -38,6 +38,7 @@ import org.tensorflow.lite.Interpreter
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.*
 
 class ImageClassifierActivity : Activity() {
 
@@ -57,9 +58,13 @@ class ImageClassifierActivity : Activity() {
     private lateinit var mCameraHandler: CameraHandler
     private lateinit var mImagePreprocessor: ImagePreprocessor
 
+    private lateinit var tts: TextToSpeech
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        tts = TextToSpeech(this, TextToSpeech.OnInitListener { tts.language = Locale.US })
 
         setContentView(R.layout.activity_camera)
 
@@ -71,7 +76,18 @@ class ImageClassifierActivity : Activity() {
         initServoMotors()
         initCountDown()
 
-        updateStatus(getString(R.string.help_message))
+        initGameInstruction()
+    }
+
+    private fun initGameInstruction() {
+        val welcomePrompt = getString(R.string.welcome_prompt)
+        val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.test_sound)
+        mediaPlayer.setOnCompletionListener {
+            tts.speak(welcomePrompt, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
+        }
+        mediaPlayer.start()
+
+        updateStatus(welcomePrompt)
     }
 
     private fun initButton() {
@@ -170,21 +186,26 @@ class ImageClassifierActivity : Activity() {
         // storing results on the confidencePerLabel array.
         mTensorFlowLite.run(imgData, confidencePerLabel)
 
-        // Get the results with the highest confidence and map them to their labels
-//        val results = TensorFlowHelper.getBestResults(confidencePerLabel, mLabels)
-
         val topResult = TensorFlowHelper.getTopLabel(confidencePerLabel, mLabels)
-        // Report the results with the highest confidence
         currentGesture?.let { selfGesture ->
             val opponentGesture = Gesture.valueOf(topResult.first.toUpperCase())
             val gameResult = Rules.getGameResult(selfGesture, opponentGesture)
-            resultText.text = getString(gameResult.reason)
+            val reason = getString(gameResult.reason)
+
             gameResult.doIWin?.let {
                 if (it) {
-                    // TODO play wining sound + display smile face
+                    val fullResult = getString(R.string.i_won_you_lost, reason)
+                    resultText.text = fullResult
+                    tts.speak(fullResult, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
                 } else {
-                    // TODO play lose sound + display sad face
+                    val fullResult = getString(R.string.i_lost_you_won, reason)
+                    resultText.text = fullResult
+                    tts.speak(fullResult, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
                 }
+            } ?: run {
+                // it's a tie!
+                resultText.text = reason
+                tts.speak(reason, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
             }
         }
 
@@ -205,7 +226,7 @@ class ImageClassifierActivity : Activity() {
                 PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
             val bitmap = mImagePreprocessor.preprocessImage(imageReader.acquireNextImage())
-            imageView.setImageBitmap(bitmap)
+            previewImage.setImageBitmap(bitmap)
             doRecognize(bitmap)
         }
     }
@@ -245,10 +266,6 @@ class ImageClassifierActivity : Activity() {
             override fun onFinish() {
                 isCountingDown = false
                 resultText.text = "Play!"
-
-                // TODO game start sound
-                val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.test_sound)
-                mediaPlayer.start()
 
                 // TODO test servo motors should not block current thread
                 if (mProcessing) {
@@ -321,31 +338,6 @@ class ImageClassifierActivity : Activity() {
 
     private fun updateStatus(text: String) {
         resultText.text = text
-    }
-
-    /**
-     * Format results list for display
-     */
-    private fun formatResults(results: Collection<Recognition>?): String {
-        if (results == null || results.isEmpty()) {
-            return getString(R.string.empty_result)
-        } else {
-            val sb = StringBuilder()
-            val it = results.iterator()
-            var counter = 0
-            while (it.hasNext()) {
-                val r = it.next()
-                sb.append(r.title)
-                counter++
-                if (counter < results.size - 1) {
-                    sb.append(", ")
-                } else if (counter == results.size - 1) {
-                    sb.append(" or ")
-                }
-            }
-
-            return sb.toString()
-        }
     }
 
     override fun onDestroy() {

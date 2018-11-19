@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">ATHandGame</string>
-    <string name="welcomPrompt">Pressing the button to play!</string>
+    <string name="welcome_prompt">Press the button to start the game!</string>
 
     <string name="rock_crushed_scissors">Rock crushes Scissors</string>
     <string name="rock_crushes_lizard">Rock crushes Lizard</string>
@@ -20,10 +20,11 @@
 
     <!-- camera -->
     <string name="initializing">Initializing…</string>
-    <string name="help_message">Press the button to start the game</string>
     <string name="empty_result">I don\'t understand what I see</string>
     <string name="play_game">Play</string>
     <string name="general_error">Something went wrong :(</string>
     <string name="i_win">I win!!</string>
+    <string name="i_won_you_lost">I won, you lost! %s :)</string>
+    <string name="i_lost_you_won">I lost, you won! %s :(</string>
 
 </resources>
