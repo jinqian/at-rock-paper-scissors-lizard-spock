@@ -2,7 +2,7 @@
     <string name="app_name">ATHandGame</string>
     <string name="welcomPrompt">Pressing the button to play!</string>
 
-    <string name="rock_crushed_scissors">Rock cuts Scissors</string>
+    <string name="rock_crushed_scissors">Rock crushes Scissors</string>
     <string name="rock_crushes_lizard">Rock crushes Lizard</string>
 
     <string name="paper_covers_rock">Paper covers Rock</string>
