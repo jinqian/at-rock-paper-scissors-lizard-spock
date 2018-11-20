@@ -23,7 +23,6 @@
     <string name="empty_result">I don\'t understand what I see</string>
     <string name="play_game">Play</string>
     <string name="general_error">Something went wrong :(</string>
-    <string name="i_win">I win!!</string>
     <string name="i_won_you_lost">I won, you lost! %s :)</string>
     <string name="i_lost_you_won">I lost, you won! %s :(</string>
     <string name="play">Play!</string>
