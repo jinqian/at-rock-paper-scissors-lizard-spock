@@ -26,5 +26,6 @@
     <string name="i_win">I win!!</string>
     <string name="i_won_you_lost">I won, you lost! %s :)</string>
     <string name="i_lost_you_won">I lost, you won! %s :(</string>
+    <string name="play">Play!</string>
 
 </resources>

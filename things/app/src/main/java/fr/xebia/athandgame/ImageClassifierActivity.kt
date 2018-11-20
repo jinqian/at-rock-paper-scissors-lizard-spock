@@ -20,6 +20,7 @@ import android.graphics.Bitmap
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Environment
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.KeyEvent
@@ -34,11 +35,16 @@ import fr.xebia.athandgame.game.Gesture
 import fr.xebia.athandgame.game.GestureGenerator
 import fr.xebia.athandgame.game.Rules
 import kotlinx.android.synthetic.main.activity_camera.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
+
 
 class ImageClassifierActivity : Activity() {
 
@@ -58,12 +64,14 @@ class ImageClassifierActivity : Activity() {
     private lateinit var mCameraHandler: CameraHandler
     private lateinit var mImagePreprocessor: ImagePreprocessor
 
+    private lateinit var mediaPlayer: MediaPlayer
     private lateinit var tts: TextToSpeech
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        mediaPlayer = MediaPlayer.create(applicationContext, R.raw.game_start)
         tts = TextToSpeech(this, TextToSpeech.OnInitListener { tts.language = Locale.US })
 
         setContentView(R.layout.activity_camera)
@@ -77,6 +85,8 @@ class ImageClassifierActivity : Activity() {
         initCountDown()
 
         initGameInstruction()
+
+        updateStatus(getString(R.string.welcome_prompt))
     }
 
     private fun initGameSet() {
@@ -100,12 +110,10 @@ class ImageClassifierActivity : Activity() {
 
     private fun initGameInstruction() {
         val welcomePrompt = getString(R.string.welcome_prompt)
-        val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.game_start)
         mediaPlayer.setOnCompletionListener {
             tts.speak(welcomePrompt, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
         }
         mediaPlayer.start()
-        updateStatus(welcomePrompt)
     }
 
     private fun initButton() {
@@ -205,6 +213,7 @@ class ImageClassifierActivity : Activity() {
         }
 
         mProcessing = false
+        saveTempBitmap(image)
     }
 
     /**
@@ -224,6 +233,43 @@ class ImageClassifierActivity : Activity() {
             previewImage.setImageBitmap(bitmap)
             doRecognize(bitmap)
         }
+    }
+
+    private fun saveTempBitmap(bitmap: Bitmap) {
+        if (isExternalStorageWritable()) {
+            Log.d(TAG, "Save bitmap")
+            GlobalScope.launch {
+                saveImage(bitmap)
+            }
+        } else {
+            Log.d(TAG, "External storage not writable")
+        }
+    }
+
+    private fun saveImage(finalBitmap: Bitmap) {
+        val root = Environment.getExternalStorageDirectory().toString()
+        val myDir = File("$root/chifumi")
+        myDir.mkdirs()
+
+        val timeStamp = System.currentTimeMillis().toString()
+        val fileName = "image_$timeStamp.jpg"
+
+        val file = File(myDir, fileName)
+        if (file.exists()) file.delete()
+        try {
+            Log.d(TAG, "Save to $myDir/$fileName")
+            val out = FileOutputStream(file)
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            out.flush()
+            out.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun isExternalStorageWritable(): Boolean {
+        val state = Environment.getExternalStorageState()
+        return Environment.MEDIA_MOUNTED == state
     }
 
     /**
@@ -255,12 +301,16 @@ class ImageClassifierActivity : Activity() {
 
             override fun onTick(millisUntilFinished: Long) {
                 isCountingDown = true
-                resultText.text = (millisUntilFinished / 1000 + 1).toString()
+                val currentSecond = (millisUntilFinished / 1000 + 1).toString()
+                resultText.text = currentSecond
+                tts.speak(currentSecond, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
             }
 
             override fun onFinish() {
                 isCountingDown = false
-                resultText.text = "Play!"
+                val play = getString(R.string.play)
+                resultText.text = play
+                tts.speak(play, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
 
                 // TODO test servo motors should not block current thread
                 if (mProcessing) {
