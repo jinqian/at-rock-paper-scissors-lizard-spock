@@ -79,14 +79,32 @@ class ImageClassifierActivity : Activity() {
         initGameInstruction()
     }
 
+    private fun initGameSet() {
+        try {
+            intent?.extras?.let {
+                if (it.getBoolean(EXTRA_FULL_MODE)) {
+                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, FULL_MODEL_FILE))
+                    mLabels = TensorFlowHelper.readLabels(this, FULL_LABELS_FILE)
+                    gestureGenerator = GestureGenerator(FULL_GAME_MODE)
+                } else {
+                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, PARTIAL_MODEL_FILE))
+                    mLabels = TensorFlowHelper.readLabels(this, PARTIAL_LABELS_FILE)
+                    gestureGenerator = GestureGenerator(PARTIAL_GAME_MODE)
+                }
+            }
+
+        } catch (e: IOException) {
+            Log.w(TAG, "Unable to initialize TensorFlow Lite.", e)
+        }
+    }
+
     private fun initGameInstruction() {
         val welcomePrompt = getString(R.string.welcome_prompt)
-        val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.test_sound)
+        val mediaPlayer = MediaPlayer.create(applicationContext, R.raw.game_start)
         mediaPlayer.setOnCompletionListener {
             tts.speak(welcomePrompt, TextToSpeech.QUEUE_FLUSH, null, System.currentTimeMillis().toString())
         }
         mediaPlayer.start()
-
         updateStatus(welcomePrompt)
     }
 
@@ -98,9 +116,9 @@ class ImageClassifierActivity : Activity() {
 
         Log.d(TAG, "Registering button driver")
         buttonInputDriver = ButtonInputDriver(
-                BoardDefaults.gpioForButton,
-                Button.LogicState.PRESSED_WHEN_LOW,
-                KeyEvent.KEYCODE_SPACE
+            BoardDefaults.gpioForButton,
+            Button.LogicState.PRESSED_WHEN_LOW,
+            KeyEvent.KEYCODE_SPACE
         )
         buttonInputDriver.register()
     }
@@ -130,29 +148,6 @@ class ImageClassifierActivity : Activity() {
     }
 
     /**
-     * Initialize the classifier that will be used to process images.
-     */
-    private fun initGameSet() {
-        try {
-            intent?.extras?.let {
-                if (it.getBoolean(EXTRA_FULL_MODE)) {
-                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, FULL_MODEL_FILE))
-                    mLabels = TensorFlowHelper.readLabels(this, FULL_LABELS_FILE)
-                    gestureGenerator = GestureGenerator(FULL_GAME_MODE)
-                } else {
-                    mTensorFlowLite = Interpreter(TensorFlowHelper.loadModelFile(this, PARTIAL_MODEL_FILE))
-                    mLabels = TensorFlowHelper.readLabels(this, PARTIAL_LABELS_FILE)
-                    gestureGenerator = GestureGenerator(PARTIAL_GAME_MODE)
-                }
-            }
-
-        } catch (e: IOException) {
-            Log.w(TAG, "Unable to initialize TensorFlow Lite.", e)
-        }
-
-    }
-
-    /**
      * Clean up the resources used by the classifier.
      */
     private fun destroyClassifier() {
@@ -175,7 +170,7 @@ class ImageClassifierActivity : Activity() {
         // Allocate buffer for image pixels.
         val intValues = IntArray(DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y)
         val imgData = ByteBuffer.allocateDirect(
-                4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
+            4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
         )
         imgData.order(ByteOrder.nativeOrder())
 
@@ -217,13 +212,13 @@ class ImageClassifierActivity : Activity() {
      */
     private fun initCamera() {
         mImagePreprocessor = ImagePreprocessor(
-                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
-                DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
+            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
+            DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
         )
         mCameraHandler = CameraHandler.getInstance()
         mCameraHandler.initializeCamera(
-                this,
-                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
+            this,
+            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
             val bitmap = mImagePreprocessor.preprocessImage(imageReader.acquireNextImage())
             previewImage.setImageBitmap(bitmap)
