@@ -16,15 +16,16 @@
 
     <string name="lizard_eats_paper">Lizard eats Paper</string>
     <string name="lizard_poisons_spock">Lizard poisons Spock</string>
-    <string name="tie_result">It\'s a tie!</string>
 
-    <!-- camera -->
     <string name="initializing">Initializing…</string>
     <string name="empty_result">I don\'t understand what I see</string>
-    <string name="play_game">Play</string>
+
     <string name="general_error">Something went wrong :(</string>
-    <string name="i_won_you_lost">I won, you lost! %s :)</string>
-    <string name="i_lost_you_won">I lost, you won! %s :(</string>
+    <string name="tie_result">It\'s a tie! \n Press the button to play again!</string>
+    <string name="i_won_you_lost">I won, you lost! %s \n:) \n Press the button to play again!</string>
+    <string name="i_lost_you_won">I lost, you won! %s \n:( \n Press the button to play again!</string>
+
     <string name="play">Play!</string>
+    <string name="choose_game_mode">Choose Game Mode</string>
 
 </resources>

@@ -11,6 +11,10 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        debugMenu.setOnClickListener {
+            startActivity(Intent(this, DebugActivity::class.java))
+        }
+
         threeMode.setOnClickListener {
             val intent = Intent(this, ImageClassifierActivity::class.java)
             intent.putExtra(ImageClassifierActivity.EXTRA_FULL_MODE, false)

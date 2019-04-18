@@ -49,7 +49,7 @@
         android:padding="20dp"
         android:text="@string/welcome_prompt"
         android:textColor="@android:color/white"
-        android:textSize="48sp"
+        android:textSize="36sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="@+id/middleGuideLine"

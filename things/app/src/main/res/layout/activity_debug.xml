@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".DebugActivity">
+
+    <Button
+        android:id="@+id/testRock"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Test Rock" />
+
+    <Button
+        android:id="@+id/testPaper"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Test Paper" />
+
+    <Button
+        android:id="@+id/testScissors"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Test Scissors" />
+
+    <Button
+        android:id="@+id/testSpock"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Test Spock" />
+
+    <Button
+        android:id="@+id/testLizard"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Test Lizard" />
+
+    <Button
+        android:id="@+id/exitDebug"
+        android:layout_width="@dimen/test_button_width"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:text="Exit" />
+
+</LinearLayout>

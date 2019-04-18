@@ -124,9 +124,9 @@ class ImageClassifierActivity : Activity() {
 
         Log.d(TAG, "Registering button driver")
         buttonInputDriver = ButtonInputDriver(
-            BoardDefaults.gpioForButton,
-            Button.LogicState.PRESSED_WHEN_LOW,
-            KeyEvent.KEYCODE_SPACE
+                BoardDefaults.gpioForButton,
+                Button.LogicState.PRESSED_WHEN_LOW,
+                KeyEvent.KEYCODE_SPACE
         )
         buttonInputDriver.register()
     }
@@ -178,7 +178,7 @@ class ImageClassifierActivity : Activity() {
         // Allocate buffer for image pixels.
         val intValues = IntArray(DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y)
         val imgData = ByteBuffer.allocateDirect(
-            4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
+                4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE
         )
         imgData.order(ByteOrder.nativeOrder())
 
@@ -221,13 +221,13 @@ class ImageClassifierActivity : Activity() {
      */
     private fun initCamera() {
         mImagePreprocessor = ImagePreprocessor(
-            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
-            DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
+                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT,
+                DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y
         )
         mCameraHandler = CameraHandler.getInstance()
         mCameraHandler.initializeCamera(
-            this,
-            PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
+                this,
+                PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT, null
         ) { imageReader ->
             val bitmap = mImagePreprocessor.preprocessImage(imageReader.acquireNextImage())
             previewImage.setImageBitmap(bitmap)
@@ -431,14 +431,5 @@ class ImageClassifierActivity : Activity() {
 
         private const val PARTIAL_LABELS_FILE = "handgame_3_labels.txt"
         private const val PARTIAL_MODEL_FILE = "handgame_3_graph.lite"
-
-        // The PWM/Servo driver is hooked on I2C2
-        private const val I2C_DEVICE_NAME: String = "I2C2"
-
-        private const val I2C_SERVO_ADDRESS: Int = 0x40
-
-        private const val PWM_FREQUENCE = 60
-        private const val SERVO_DOWN = 100
-        private const val SERVO_HAND = 350
     }
 }
