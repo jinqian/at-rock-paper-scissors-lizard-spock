@@ -35,7 +35,9 @@ This repository contains:
 - A data collector tool
 - Android Things application
 - Trained TensorFlow lite model used in this project
-- TODO: circuit map
+- Fritzing circuit plan
+
+![circuit](circuit.png)
 
 # Future plans
 
